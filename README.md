@@ -10,13 +10,31 @@ If you have improvements or suggestions please open an issue or pull request on 
 |-----|-------|-----|--------|--------|
 | latest/![docker version](https://img.shields.io/docker/v/richarvey/nginx-php-fpm?sort=semver)| Main Branch |1.24-r6 | 8.2.7 | 3.18 |
 
-For other tags please see: [versioning](https://github.com/richarvey/nginx-php-fpm/blob/main/docs/versioning.md)
+For other tags please see: [versioning](docs/versioning.md)
 
 __NOTE:__ From 2.0.5 onwards there are x86 and arm64 builds available
 
 ### Links
 - [https://github.com/richarvey/nginx-php-fpm](https://github.com/richarvey/nginx-php-fpm)
 - [https://hub.docker.com/repository/docker/richarvey/nginx-php-fpm/general](https://hub.docker.com/repository/docker/richarvey/nginx-php-fpm/general)
+
+### Updating the PHP Version
+To update the PHP version
+
+1. **Modify the `Dockerfile`**
+   Replace the base image with the desired PHP version. For example:
+   ```dockerfile
+   FROM php:8.2-fpm-alpine
+
+2. ** Update [versioning](docs/versioning.md) **
+
+2. **Build the Docker image**
+    ```shell
+   docker build -t 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:3.1.7 .
+
+3. **Push the image to the registry**
+    ```shell
+   docker push 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:3.1.7
 
 ## Quick Start
 To pull from docker hub:
