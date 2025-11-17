@@ -2,10 +2,11 @@ FROM php:8.2-fpm-alpine
 
 LABEL maintainer="Ric Harvey <ric@squarecows.com>"
 
+ENV fpm_docker_conf /usr/local/etc/php-fpm.d/zz-docker.conf
 ENV php_vars /usr/local/etc/php/conf.d/docker-vars.ini
 
-ENV LUAJIT_LIB=/usr/lib
-ENV LUAJIT_INC=/usr/include/luajit-2.1
+ENV LUAJIT_LIB /usr/lib
+ENV LUAJIT_INC /usr/include/luajit-2.1
 
 # resolves #166
 ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
@@ -109,9 +110,26 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
     echo "upload_max_filesize = 100M"  >> ${php_vars} &&\
     echo "post_max_size = 100M"  >> ${php_vars} &&\
     echo "variables_order = \"EGPCS\""  >> ${php_vars} && \
-    echo "memory_limit = 128M"  >> ${php_vars}
-
-ADD conf/zz-custom.conf /usr/local/etc/php-fpm.d/zz-custom.conf
+    echo "memory_limit = 128M"  >> ${php_vars} && \
+    { \
+        echo '[global]'; \
+        echo 'daemonize = no'; \
+        echo; \
+        echo '[www]'; \
+        echo 'listen = /var/run/php-fpm.sock'; \
+        echo 'catch_workers_output = yes'; \
+        echo 'pm.max_children = 4'; \
+        echo 'pm.start_servers = 3'; \
+        echo 'pm.min_spare_servers = 2'; \
+        echo 'pm.max_spare_servers = 4'; \
+        echo 'pm.max_requests = 200'; \
+        echo 'user = nginx'; \
+        echo 'group = nginx'; \
+        echo 'listen.mode = 0666'; \
+        echo 'listen.owner = nginx'; \
+        echo 'listen.group = nginx'; \
+        echo 'clear_env = no'; \
+    } | tee ${fpm_docker_conf}
 
 #    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
 RUN cp /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini && \
@@ -119,7 +137,6 @@ RUN cp /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini && \
 	    -e "s/;opcache/opcache/g" \
 	    -e "s/;zend_extension=opcache/zend_extension=opcache/g" \
             /usr/local/etc/php/php.ini
-
 
 # Add Scripts
 ADD scripts/start.sh /start.sh

@@ -15,18 +15,19 @@ The latest tag will always follow the main branch in git. the other versions wil
 
 #### PHP 8.2.x
  
-| Docker Tag | PHP Version | Nginx Version | Alpine Version | Container Scripts | Notes |
-|-----|-------|-----|--------|--------|----------|
-| 3.1.6 | 8.2.7 |1.24-r6 | 3.18 | 0.3.17 | upgrade to php 8.2.5 |
-| 3.1.5 | 8.2.6 |1.24-r6 | 3.18 | 0.3.17 | upgrade to php 8.2.6 |
-| 3.1.4 | 8.2.5 |1.22.1 | 3.17 | 0.3.17 | upgrade to php 8.2.5 |
-| 3.1.3 | 8.2.4 |1.22.1 | 3.17 | 0.3.17 | adding mongoDB support #281 |
-| 3.1.2 | 8.2.4 |1.22.1 | 3.17 | 0.3.17 | fix #280 |
-| 3.1.1 | 8.2.4 |1.22.1 | 3.17 | 0.3.17 | upgrade to php 8.2.4 |
-| 3.1.0 | 8.2.3 |1.22.1 | 3.17 | 0.3.17 | reduced image size |
-| 3.0.2 | 8.2.3 |1.22.1 | 3.17 | 0.3.17 | fixed gd2 and xsl errors |
-| 3.0.1 | 8.2.3 |1.22.1 | 3.17 | 0.3.17 | no cache typo fixed + TZ fixed in scripts |
-| 3.0.0 | 8.2.3 |1.22.1 | 3.17 | 0.3.16 | upgraded php to 8.2.3 switched to packaged nginx |
+| Docker Tag | PHP Version | Nginx Version | Alpine Version | Container Scripts | Notes                                            |
+|------------|-------------|---------------|----------------|-------------------|--------------------------------------------------|
+| 3.1.7      | 8.2.29      | 1.28.0        | 3.22           | 0.3.17            | fix  issue of truncated stderr logs              |
+| 3.1.6      | 8.2.7       | 1.24-r6       | 3.18           | 0.3.17            | upgrade to php 8.2.5                             |
+| 3.1.5      | 8.2.6       | 1.24-r6       | 3.18           | 0.3.17            | upgrade to php 8.2.6                             |
+| 3.1.4      | 8.2.5       | 1.22.1        | 3.17           | 0.3.17            | upgrade to php 8.2.5                             |
+| 3.1.3      | 8.2.4       | 1.22.1        | 3.17           | 0.3.17            | adding mongoDB support #281                      |
+| 3.1.2      | 8.2.4       | 1.22.1        | 3.17           | 0.3.17            | fix #280                                         |
+| 3.1.1      | 8.2.4       | 1.22.1        | 3.17           | 0.3.17            | upgrade to php 8.2.4                             |
+| 3.1.0      | 8.2.3       | 1.22.1        | 3.17           | 0.3.17            | reduced image size                               |
+| 3.0.2      | 8.2.3       | 1.22.1        | 3.17           | 0.3.17            | fixed gd2 and xsl errors                         |
+| 3.0.1      | 8.2.3       | 1.22.1        | 3.17           | 0.3.17            | no cache typo fixed + TZ fixed in scripts        |
+| 3.0.0      | 8.2.3       | 1.22.1        | 3.17           | 0.3.16            | upgraded php to 8.2.3 switched to packaged nginx |
 
 These tags will be created on GitHub and as tags in docker hub.
 
