@@ -1,9 +1,7 @@
-FROM php:8.2.7-fpm-alpine3.18
+FROM php:8.2-fpm-alpine
 
 LABEL maintainer="Ric Harvey <ric@squarecows.com>"
 
-ENV php_conf /usr/local/etc/php-fpm.conf
-ENV fpm_conf /usr/local/etc/php-fpm.d/www.conf
 ENV php_vars /usr/local/etc/php/conf.d/docker-vars.ini
 
 ENV LUAJIT_LIB=/usr/lib
@@ -69,7 +67,7 @@ RUN apk add --no-cache --virtual .sys-deps \
       --with-freetype \
       --with-jpeg && \
     docker-php-ext-install gd && \
-     pip install --upgrade pip && \
+     pip install --break-system-packages --upgrade pip && \
     docker-php-ext-install pdo_mysql mysqli pdo_sqlite pgsql pdo_pgsql exif intl xsl soap zip && \
     pecl install -o -f xdebug && \
     pecl install -o -f redis && \ 
@@ -85,7 +83,7 @@ RUN apk add --no-cache --virtual .sys-deps \
     php composer-setup.php --quiet --install-dir=/usr/bin --filename=composer && \
     rm composer-setup.php &&\
   #  pip3 install -U pip && \
-    pip3 install -U certbot && \
+    pip3 install --break-system-packages -U certbot && \
     mkdir -p /etc/letsencrypt/webrootauth && \
     apk del gcc musl-dev linux-headers libffi-dev augeas-dev python3-dev make autoconf && \
     apk del .sys-deps
@@ -111,22 +109,10 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
     echo "upload_max_filesize = 100M"  >> ${php_vars} &&\
     echo "post_max_size = 100M"  >> ${php_vars} &&\
     echo "variables_order = \"EGPCS\""  >> ${php_vars} && \
-    echo "memory_limit = 128M"  >> ${php_vars} && \
-    sed -i \
-        -e "s/;catch_workers_output\s*=\s*yes/catch_workers_output = yes/g" \
-        -e "s/pm.max_children = 5/pm.max_children = 4/g" \
-        -e "s/pm.start_servers = 2/pm.start_servers = 3/g" \
-        -e "s/pm.min_spare_servers = 1/pm.min_spare_servers = 2/g" \
-        -e "s/pm.max_spare_servers = 3/pm.max_spare_servers = 4/g" \
-        -e "s/;pm.max_requests = 500/pm.max_requests = 200/g" \
-        -e "s/user = www-data/user = nginx/g" \
-        -e "s/group = www-data/group = nginx/g" \
-        -e "s/;listen.mode = 0660/listen.mode = 0666/g" \
-        -e "s/;listen.owner = www-data/listen.owner = nginx/g" \
-        -e "s/;listen.group = www-data/listen.group = nginx/g" \
-        -e "s/listen = 127.0.0.1:9000/listen = \/var\/run\/php-fpm.sock/g" \
-        -e "s/^;clear_env = no$/clear_env = no/" \
-        ${fpm_conf}
+    echo "memory_limit = 128M"  >> ${php_vars}
+
+ADD conf/zz-custom.conf /usr/local/etc/php-fpm.d/zz-custom.conf
+
 #    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
 RUN cp /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini && \
 	sed -i \
@@ -146,7 +132,6 @@ RUN chmod 755 /usr/bin/pull && chmod 755 /usr/bin/push && chmod 755 /usr/bin/let
 # copy in code
 ADD src/ /var/www/html/
 ADD errors/ /var/www/errors
-
 
 EXPOSE 443 80
 
