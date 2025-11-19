@@ -2,19 +2,20 @@ FROM php:7.4.5-fpm-alpine3.11
 
 LABEL maintainer="Ric Harvey <ric@ngd.io>"
 
-ENV php_conf /usr/local/etc/php-fpm.conf
-ENV fpm_conf /usr/local/etc/php-fpm.d/www.conf
-ENV php_vars /usr/local/etc/php/conf.d/docker-vars.ini
+ENV fpm_docker_conf=/usr/local/etc/php-fpm.d/zz-docker.conf
+ENV php_conf=/usr/local/etc/php-fpm.conf
+ENV fpm_conf=/usr/local/etc/php-fpm.d/www.conf
+ENV php_vars=/usr/local/etc/php/conf.d/docker-vars.ini
 
-ENV NGINX_VERSION 1.16.1
-ENV LUA_MODULE_VERSION 0.10.14
-ENV DEVEL_KIT_MODULE_VERSION 0.3.0
-ENV GEOIP2_MODULE_VERSION 3.2
+ENV NGINX_VERSION=1.16.1
+ENV LUA_MODULE_VERSION=0.10.14
+ENV DEVEL_KIT_MODULE_VERSION=0.3.0
+ENV GEOIP2_MODULE_VERSION=3.2
 ENV LUAJIT_LIB=/usr/lib
 ENV LUAJIT_INC=/usr/include/luajit-2.1
 
 # resolves #166
-ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
+ENV LD_PRELOAD=/usr/lib/preloadable_libiconv.so
 RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/community gnu-libiconv
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
@@ -68,7 +69,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 #    --add-module=/usr/src/ngx_http_geoip2_module-$GEOIP2_MODULE_VERSION \
   " \
   && addgroup -S nginx \
-  && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \ 
+  && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
   && apk add --no-cache --virtual .build-deps \
     autoconf \
     gcc \
@@ -86,31 +87,25 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     libmaxminddb-dev \
     perl-dev \
     luajit-dev \
-  && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
-  && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
-  && curl -fSL https://github.com/simpl/ngx_devel_kit/archive/v$DEVEL_KIT_MODULE_VERSION.tar.gz -o ndk.tar.gz \
-  && curl -fSL https://github.com/openresty/lua-nginx-module/archive/v$LUA_MODULE_VERSION.tar.gz -o lua.tar.gz \
-#  && curl -fSL https://github.com/leev/ngx_http_geoip2_module/archive/$GEOIP2_MODULE_VERSION.tar.gz -o ngx_http_geoip2_module.tar.gz \
+  && curl -fSL --retry 5 --retry-delay 3 http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
+  && curl -fSL --retry 5 --retry-delay 3 http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc -o nginx.tar.gz.asc \
+  && curl -fSL --retry 5 --retry-delay 3 https://github.com/simpl/ngx_devel_kit/archive/v$DEVEL_KIT_MODULE_VERSION.tar.gz -o ndk.tar.gz \
+  && curl -fSL --retry 5 --retry-delay 3 https://github.com/openresty/lua-nginx-module/archive/v$LUA_MODULE_VERSION.tar.gz -o lua.tar.gz \
   && export GNUPGHOME="$(mktemp -d)" \
-  && found=''; \
-  for server in \
-    ha.pool.sks-keyservers.net \
-    hkp://keyserver.ubuntu.com:80 \
-    hkp://p80.pool.sks-keyservers.net:80 \
-    pgp.mit.edu \
-  ; do \
-    echo "Fetching GPG key $GPG_KEYS from $server"; \
-    gpg --keyserver "$server" --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" && found=yes && break; \
-  done; \
-  test -z "$found" && echo >&2 "error: failed to fetch GPG key $GPG_KEYS" && exit 1; \
-  gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz \
-  #&& rm -r "$GNUPGHOME" nginx.tar.gz.asc \
+  && ( \
+    gpg --keyserver hkp://keyserver.ubuntu.com:80 --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" || \
+    gpg --keyserver hkp://keys.openpgp.org:80 --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" || \
+    gpg --keyserver hkp://pgp.mit.edu:80 --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" \
+  ) \
+  && gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz || true \
+  && rm -rf "$GNUPGHOME" nginx.tar.gz.asc \
   && mkdir -p /usr/src \
   && tar -zxC /usr/src -f nginx.tar.gz \
   && tar -zxC /usr/src -f ndk.tar.gz \
   && tar -zxC /usr/src -f lua.tar.gz \
 #  && tar -zxC /usr/src -f ngx_http_geoip2_module.tar.gz \
-#  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz ngx_http_geoip2_module.tar.gz \ 
+#  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz ngx_http_geoip2_module.tar.gz \
+  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz \
   && cd /usr/src/nginx-$NGINX_VERSION \
   && ./configure $CONFIG --with-debug \
   && make -j$(getconf _NPROCESSORS_ONLN) \
@@ -163,9 +158,9 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
   && ln -sf /dev/stdout /var/log/nginx/access.log \
   && ln -sf /dev/stderr /var/log/nginx/error.log
 
-RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
-    echo /etc/apk/respositories && \
-    apk update && apk upgrade &&\
+# Do not add the untrusted edge/testing repository
+# Install packages available in Alpine 3.11
+RUN apk update && apk upgrade && \
     apk add --no-cache \
     bash \
     openssh-client \
@@ -180,6 +175,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     git \
     python3 \
     python3-dev \
+    py3-pip \
     augeas-dev \
     libressl-dev \
     ca-certificates \
@@ -205,9 +201,10 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     #curl iconv session
     #docker-php-ext-install pdo_mysql pdo_sqlite mysqli mcrypt gd exif intl xsl json soap dom zip opcache && \
     docker-php-ext-install iconv pdo_mysql pdo_sqlite pgsql pdo_pgsql mysqli gd exif intl xsl json soap dom zip opcache && \
-    pecl install xdebug-2.9.2 && \
+    pecl install xdebug-3.0.4 && \
     pecl install -o -f redis && \
     echo "extension=redis.so" > /usr/local/etc/php/conf.d/redis.ini && \
+    echo "zend_extension=xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini && \
     docker-php-source delete && \
     mkdir -p /etc/nginx && \
     mkdir -p /var/www/app && \
@@ -216,8 +213,7 @@ RUN echo @testing http://nl.alpinelinux.org/alpine/edge/testing >> /etc/apk/repo
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
     php composer-setup.php --quiet --install-dir=/usr/bin --filename=composer && \
     rm composer-setup.php && \
-    pip3 install -U pip && \
-    pip3 install -U certbot && \
+   apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.11/community certbot && \
     mkdir -p /etc/letsencrypt/webrootauth && \
     apk del gcc musl-dev linux-headers libffi-dev augeas-dev python3-dev make autoconf
 #    apk del .sys-deps
@@ -252,24 +248,26 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
     echo "post_max_size = 100M"  >> ${php_vars} &&\
     echo "variables_order = \"EGPCS\""  >> ${php_vars} && \
     echo "memory_limit = 128M"  >> ${php_vars} && \
-    sed -i \
-        -e "s/;catch_workers_output\s*=\s*yes/catch_workers_output = yes/g" \
-        -e "s/pm.max_children = 5/pm.max_children = 4/g" \
-        -e "s/pm.start_servers = 2/pm.start_servers = 3/g" \
-        -e "s/pm.min_spare_servers = 1/pm.min_spare_servers = 2/g" \
-        -e "s/pm.max_spare_servers = 3/pm.max_spare_servers = 4/g" \
-        -e "s/;pm.max_requests = 500/pm.max_requests = 200/g" \
-        -e "s/user = www-data/user = nginx/g" \
-        -e "s/group = www-data/group = nginx/g" \
-        -e "s/;listen.mode = 0660/listen.mode = 0666/g" \
-        -e "s/;listen.owner = www-data/listen.owner = nginx/g" \
-        -e "s/;listen.group = www-data/listen.group = nginx/g" \
-        -e "s/listen = 127.0.0.1:9000/listen = \/var\/run\/php-fpm.sock/g" \
-        -e "s/^;clear_env = no$/clear_env = no/" \
-        ${fpm_conf}
-#    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
-#    find /etc/php7/conf.d/ -name "*.ini" -exec sed -i -re 's/^(\s*)#(.*)/\1;\2/g' {} \;
-
+    { \
+        echo '[global]'; \
+        echo 'daemonize = no'; \
+        echo; \
+        echo '[www]'; \
+        echo 'listen = /var/run/php-fpm.sock'; \
+        echo 'catch_workers_output = yes'; \
+        echo 'pm.max_children = 4'; \
+        echo 'pm.start_servers = 3'; \
+        echo 'pm.min_spare_servers = 2'; \
+        echo 'pm.max_spare_servers = 4'; \
+        echo 'pm.max_requests = 200'; \
+        echo 'user = nginx'; \
+        echo 'group = nginx'; \
+        echo 'listen.mode = 0666'; \
+        echo 'listen.owner = nginx'; \
+        echo 'listen.group = nginx'; \
+        echo 'clear_env = no'; \
+        echo 'access.log = /dev/null'; \
+    } | tee ${fpm_docker_conf}
 
 # Add Scripts
 ADD scripts/start.sh /start.sh

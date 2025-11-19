@@ -20,6 +20,26 @@ For other tags please see: [versioning](https://gitlab.com/ric_harvey/nginx-php-
 - [https://gitlab.com/ric_harvey/nginx-php-fpm](https://gitlab.com/ric_harvey/nginx-php-fpm)
 - [https://registry.hub.docker.com/u/richarvey/nginx-php-fpm/](https://registry.hub.docker.com/u/richarvey/nginx-php-fpm/)
 
+
+### Updating the PHP Version
+To update the PHP version
+
+1. **Modify the `Dockerfile`**
+   Replace the base image with the desired PHP version. For example:
+   ```dockerfile
+   FROM php:8.2-fpm-alpine
+
+2. ** Update [versioning](docs/versioning.md) **
+
+2. **Build the Docker image**
+    ```shell
+   docker build -t 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.2 .
+
+3. **Push the image to the registry**
+    ```shell
+   docker push 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.2
+
+
 ## Quick Start
 To pull from docker hub:
 ```
