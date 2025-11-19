@@ -1,4 +1,4 @@
-FROM php:8.4-fpm-alpine3.22
+FROM php:8.2-fpm-alpine
 
 LABEL maintainer="Ric Harvey <ric@squarecows.com>"
 
@@ -129,6 +129,7 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
         echo 'listen.owner = nginx'; \
         echo 'listen.group = nginx'; \
         echo 'clear_env = no'; \
+        echo 'access.log = /dev/null'; \
     } | tee ${fpm_docker_conf}
 
 #    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
