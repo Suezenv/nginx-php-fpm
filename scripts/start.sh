@@ -31,7 +31,7 @@ fi
 
 # Disable opcache
 if [ ! -z "$OPcache" ]; then
- sed -i 's#zend_extension=opcache#;zend_extension=opcache#g' /usr/local/etc/php/php.ini
+ sed -i 's#zend_extension=opcache#;zend_extension=opcache#g' /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 fi
 
 # Setup git variables
