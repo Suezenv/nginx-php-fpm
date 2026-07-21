@@ -13,6 +13,7 @@ If you have improvements or suggestions please open an issue or pull request on 
 | Docker Tag | Git Release | Nginx Version | PHP Version | Alpine Version |
 |-----|-------|-----|--------|--------|
 | latest/1.9.0 | Master Branch |1.16.1 | 7.4.5 | 3.11 |
+| latest/1.9.3 | Master Branch |1.16.1 | 7.4.33 | 3.16 |
 
 For other tags please see: [versioning](https://gitlab.com/ric_harvey/nginx-php-fpm/blob/master/docs/versioning.md)
 
@@ -33,11 +34,11 @@ To update the PHP version
 
 2. **Build the Docker image**
     ```shell
-   docker build -t 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.2 .
+   docker build -t 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.3 .
 
 3. **Push the image to the registry**
     ```shell
-   docker push 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.2
+   docker push 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.3
 
 
 ## Quick Start

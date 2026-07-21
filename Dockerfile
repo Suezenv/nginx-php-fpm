@@ -1,4 +1,4 @@
-FROM php:7.4.5-fpm-alpine3.11
+FROM php:7.4.33-fpm-alpine3.16
 
 LABEL maintainer="Ric Harvey <ric@ngd.io>"
 
@@ -14,12 +14,16 @@ ENV GEOIP2_MODULE_VERSION=3.2
 ENV LUAJIT_LIB=/usr/lib
 ENV LUAJIT_INC=/usr/include/luajit-2.1
 
-# resolves #166
+# libiconv pour resolver #166
 ENV LD_PRELOAD=/usr/lib/preloadable_libiconv.so
 RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/community gnu-libiconv
 
-RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
-  && CONFIG="\
+# ----------------------------
+# NGINX + modules from source
+# ----------------------------
+RUN set -eux; \
+  GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8; \
+  CONFIG="\
     --prefix=/etc/nginx \
     --sbin-path=/usr/sbin/nginx \
     --modules-path=/usr/lib/nginx/modules \
@@ -50,14 +54,12 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     --with-http_auth_request_module \
     --with-http_xslt_module=dynamic \
     --with-http_image_filter_module=dynamic \
-#    --with-http_geoip_module=dynamic \
     --with-http_perl_module=dynamic \
     --with-threads \
     --with-stream \
     --with-stream_ssl_module \
     --with-stream_ssl_preread_module \
     --with-stream_realip_module \
-#    --with-stream_geoip_module=dynamic \
     --with-http_slice_module \
     --with-mail \
     --with-mail_ssl_module \
@@ -66,11 +68,10 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     --with-http_v2_module \
     --add-module=/usr/src/ngx_devel_kit-$DEVEL_KIT_MODULE_VERSION \
     --add-module=/usr/src/lua-nginx-module-$LUA_MODULE_VERSION \
-#    --add-module=/usr/src/ngx_http_geoip2_module-$GEOIP2_MODULE_VERSION \
-  " \
-  && addgroup -S nginx \
-  && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
-  && apk add --no-cache --virtual .build-deps \
+  "; \
+  addgroup -S nginx; \
+  adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx; \
+  apk add --no-cache --virtual .build-nginx-deps \
     autoconf \
     gcc \
     libc-dev \
@@ -83,85 +84,70 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     gnupg \
     libxslt-dev \
     gd-dev \
- #   geoip-dev \
     libmaxminddb-dev \
     perl-dev \
-    luajit-dev \
-  && curl -fSL --retry 5 --retry-delay 3 http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
-  && curl -fSL --retry 5 --retry-delay 3 http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc -o nginx.tar.gz.asc \
-  && curl -fSL --retry 5 --retry-delay 3 https://github.com/simpl/ngx_devel_kit/archive/v$DEVEL_KIT_MODULE_VERSION.tar.gz -o ndk.tar.gz \
-  && curl -fSL --retry 5 --retry-delay 3 https://github.com/openresty/lua-nginx-module/archive/v$LUA_MODULE_VERSION.tar.gz -o lua.tar.gz \
-  && export GNUPGHOME="$(mktemp -d)" \
-  && ( \
+    luajit-dev; \
+  curl -fSL --retry 5 --retry-delay 3 http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz; \
+  curl -fSL --retry 5 --retry-delay 3 http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc -o nginx.tar.gz.asc; \
+  curl -fSL --retry 5 --retry-delay 3 https://github.com/simpl/ngx_devel_kit/archive/v$DEVEL_KIT_MODULE_VERSION.tar.gz -o ndk.tar.gz; \
+  curl -fSL --retry 5 --retry-delay 3 https://github.com/openresty/lua-nginx-module/archive/v$LUA_MODULE_VERSION.tar.gz -o lua.tar.gz; \
+  export GNUPGHOME="$(mktemp -d)"; \
+  ( \
     gpg --keyserver hkp://keyserver.ubuntu.com:80 --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" || \
     gpg --keyserver hkp://keys.openpgp.org:80 --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" || \
     gpg --keyserver hkp://pgp.mit.edu:80 --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" \
-  ) \
-  && gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz || true \
-  && rm -rf "$GNUPGHOME" nginx.tar.gz.asc \
-  && mkdir -p /usr/src \
-  && tar -zxC /usr/src -f nginx.tar.gz \
-  && tar -zxC /usr/src -f ndk.tar.gz \
-  && tar -zxC /usr/src -f lua.tar.gz \
-#  && tar -zxC /usr/src -f ngx_http_geoip2_module.tar.gz \
-#  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz ngx_http_geoip2_module.tar.gz \
-  && rm nginx.tar.gz ndk.tar.gz lua.tar.gz \
-  && cd /usr/src/nginx-$NGINX_VERSION \
-  && ./configure $CONFIG --with-debug \
-  && make -j$(getconf _NPROCESSORS_ONLN) \
-  && mv objs/nginx objs/nginx-debug \
-  && mv objs/ngx_http_xslt_filter_module.so objs/ngx_http_xslt_filter_module-debug.so \
-  && mv objs/ngx_http_image_filter_module.so objs/ngx_http_image_filter_module-debug.so \
-#  && mv objs/ngx_http_geoip_module.so objs/ngx_http_geoip_module-debug.so \
-  && mv objs/ngx_http_perl_module.so objs/ngx_http_perl_module-debug.so \
-#  && mv objs/ngx_stream_geoip_module.so objs/ngx_stream_geoip_module-debug.so \
-  && ./configure $CONFIG \
-  && make -j$(getconf _NPROCESSORS_ONLN) \
-  && make install \
-  && rm -rf /etc/nginx/html/ \
-  && mkdir /etc/nginx/conf.d/ \
-  && mkdir -p /usr/share/nginx/html/ \
-  && install -m644 html/index.html /usr/share/nginx/html/ \
-  && install -m644 html/50x.html /usr/share/nginx/html/ \
-  && install -m755 objs/nginx-debug /usr/sbin/nginx-debug \
-  && install -m755 objs/ngx_http_xslt_filter_module-debug.so /usr/lib/nginx/modules/ngx_http_xslt_filter_module-debug.so \
-  && install -m755 objs/ngx_http_image_filter_module-debug.so /usr/lib/nginx/modules/ngx_http_image_filter_module-debug.so \
-#  && install -m755 objs/ngx_http_geoip_module-debug.so /usr/lib/nginx/modules/ngx_http_geoip_module-debug.so \
-  && install -m755 objs/ngx_http_perl_module-debug.so /usr/lib/nginx/modules/ngx_http_perl_module-debug.so \
-#  && install -m755 objs/ngx_stream_geoip_module-debug.so /usr/lib/nginx/modules/ngx_stream_geoip_module-debug.so \
-  && ln -s ../../usr/lib/nginx/modules /etc/nginx/modules \
-  && strip /usr/sbin/nginx* \
-  && strip /usr/lib/nginx/modules/*.so \
-  && rm -rf /usr/src/nginx-$NGINX_VERSION \
-#  && rm -rf /usr/src/ngx_http_geoip2_module-$GEOIP2_MODULE_VERSION \
-  \
-  # Bring in gettext so we can get `envsubst`, then throw
-  # the rest away. To do this, we need to install `gettext`
-  # then move `envsubst` out of the way so `gettext` can
-  # be deleted completely, then move `envsubst` back.
-  && apk add --no-cache --virtual .gettext gettext \
-  && mv /usr/bin/envsubst /tmp/ \
-  \
-  && runDeps="$( \
+  ); \
+  gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz || true; \
+  rm -rf "$GNUPGHOME" nginx.tar.gz.asc; \
+  mkdir -p /usr/src; \
+  tar -zxC /usr/src -f nginx.tar.gz; \
+  tar -zxC /usr/src -f ndk.tar.gz; \
+  tar -zxC /usr/src -f lua.tar.gz; \
+  rm nginx.tar.gz ndk.tar.gz lua.tar.gz; \
+  cd /usr/src/nginx-$NGINX_VERSION; \
+  ./configure $CONFIG --with-debug; \
+  make -j"$(getconf _NPROCESSORS_ONLN)"; \
+  mv objs/nginx objs/nginx-debug; \
+  mv objs/ngx_http_xslt_filter_module.so objs/ngx_http_xslt_filter_module-debug.so; \
+  mv objs/ngx_http_image_filter_module.so objs/ngx_http_image_filter_module-debug.so; \
+  mv objs/ngx_http_perl_module.so objs/ngx_http_perl_module-debug.so; \
+  ./configure $CONFIG; \
+  make -j"$(getconf _NPROCESSORS_ONLN)"; \
+  make install; \
+  rm -rf /etc/nginx/html; \
+  mkdir -p /etc/nginx/conf.d; \
+  mkdir -p /usr/share/nginx/html; \
+  install -m644 html/index.html /usr/share/nginx/html/; \
+  install -m644 html/50x.html /usr/share/nginx/html/; \
+  install -m755 objs/nginx-debug /usr/sbin/nginx-debug; \
+  install -m755 objs/ngx_http_xslt_filter_module-debug.so /usr/lib/nginx/modules/; \
+  install -m755 objs/ngx_http_image_filter_module-debug.so /usr/lib/nginx/modules/; \
+  install -m755 objs/ngx_http_perl_module-debug.so /usr/lib/nginx/modules/; \
+  ln -s ../../usr/lib/nginx/modules /etc/nginx/modules; \
+  strip /usr/sbin/nginx*; \
+  strip /usr/lib/nginx/modules/*.so; \
+  rm -rf /usr/src/nginx-$NGINX_VERSION; \
+  apk add --no-cache --virtual .gettext gettext; \
+  mv /usr/bin/envsubst /tmp/envsubst; \
+  runDeps="$( \
     scanelf --needed --nobanner /usr/sbin/nginx /usr/lib/nginx/modules/*.so /tmp/envsubst \
       | awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
       | sort -u \
       | xargs -r apk info --installed \
       | sort -u \
-  )" \
-  && apk add --no-cache --virtual .nginx-rundeps $runDeps \
-  && apk del .build-deps \
-  && apk del .gettext \
-  && mv /tmp/envsubst /usr/local/bin/ \
-  \
-  # forward request and error logs to docker log collector
-  && ln -sf /dev/stdout /var/log/nginx/access.log \
-  && ln -sf /dev/stderr /var/log/nginx/error.log
+  )"; \
+  apk add --no-cache --virtual .nginx-rundeps $runDeps; \
+  apk del .build-nginx-deps .gettext; \
+  mv /tmp/envsubst /usr/local/bin/envsubst; \
+  ln -sf /dev/stdout /var/log/nginx/access.log; \
+  ln -sf /dev/stderr /var/log/nginx/error.log
 
-# Do not add the untrusted edge/testing repository
-# Install packages available in Alpine 3.11
-RUN apk update && apk upgrade && \
-    apk add --no-cache \
+# ----------------------------
+# PHP extensions + outils
+# ----------------------------
+RUN set -eux; \
+  apk update && apk upgrade; \
+  apk add --no-cache \
     bash \
     openssh-client \
     wget \
@@ -174,17 +160,11 @@ RUN apk update && apk upgrade && \
     openssl-dev \
     git \
     python3 \
-    python3-dev \
     py3-pip \
     augeas-dev \
     libressl-dev \
     ca-certificates \
     dialog \
-    autoconf \
-    make \
-    gcc \
-    musl-dev \
-    linux-headers \
     libmcrypt-dev \
     libpng-dev \
     icu-dev \
@@ -194,58 +174,69 @@ RUN apk update && apk upgrade && \
     freetype-dev \
     sqlite-dev \
     libjpeg-turbo-dev \
-    postgresql-dev && \
-    docker-php-ext-configure gd \
-      --with-freetype \
-      --with-jpeg && \
-    #curl iconv session
-    #docker-php-ext-install pdo_mysql pdo_sqlite mysqli mcrypt gd exif intl xsl json soap dom zip opcache && \
-    docker-php-ext-install iconv pdo_mysql pdo_sqlite pgsql pdo_pgsql mysqli gd exif intl xsl json soap dom zip opcache && \
-    pecl install xdebug-3.0.4 && \
-    pecl install -o -f redis && \
-    echo "extension=redis.so" > /usr/local/etc/php/conf.d/redis.ini && \
-    echo "zend_extension=xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini && \
-    docker-php-source delete && \
-    mkdir -p /etc/nginx && \
-    mkdir -p /var/www/app && \
-    mkdir -p /run/nginx && \
-    mkdir -p /var/log/supervisor && \
-    php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
-    php composer-setup.php --quiet --install-dir=/usr/bin --filename=composer && \
-    rm composer-setup.php && \
-   apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.11/community certbot && \
-    mkdir -p /etc/letsencrypt/webrootauth && \
-    apk del gcc musl-dev linux-headers libffi-dev augeas-dev python3-dev make autoconf
-#    apk del .sys-deps
-#    ln -s /usr/bin/php7 /usr/bin/php
+    postgresql-dev; \
+  apk add --no-cache --virtual .build-php-ext-deps \
+    autoconf \
+    make \
+    gcc \
+    musl-dev \
+    linux-headers \
+    python3-dev; \
+  docker-php-ext-configure gd --with-freetype --with-jpeg; \
+  docker-php-ext-install \
+    pdo_mysql \
+    pdo_sqlite \
+    pgsql \
+    pdo_pgsql \
+    mysqli \
+    gd \
+    exif \
+    intl \
+    xsl \
+    json \
+    soap \
+    dom \
+    zip \
+    opcache; \
+  pecl install xdebug-3.0.4; \
+  pecl install -o -f redis; \
+  echo "extension=redis.so" > /usr/local/etc/php/conf.d/redis.ini; \
+  echo "zend_extension=xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini; \
+  docker-php-source delete; \
+  apk del .build-php-ext-deps; \
+  mkdir -p /etc/nginx /var/www/app /run/nginx /var/log/supervisor; \
+  php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"; \
+  php composer-setup.php --quiet --install-dir=/usr/bin --filename=composer; \
+  rm composer-setup.php
+
+# ----------------------------
+# Certbot (Alpine 3.16, même version)
+# ----------------------------
+RUN set -eux; \
+  apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.16/community certbot; \
+  mkdir -p /etc/letsencrypt/webrootauth
 
 ADD conf/supervisord.conf /etc/supervisord.conf
 
-# Copy our nginx config
+# NGINX config
 RUN rm -Rf /etc/nginx/nginx.conf
 ADD conf/nginx.conf /etc/nginx/nginx.conf
 
-# nginx site conf
-RUN mkdir -p /etc/nginx/sites-available/ && \
-mkdir -p /etc/nginx/sites-enabled/ && \
-mkdir -p /etc/nginx/ssl/ && \
-rm -Rf /var/www/* && \
-mkdir /var/www/html/
+RUN mkdir -p /etc/nginx/sites-available \
+             /etc/nginx/sites-enabled \
+             /etc/nginx/ssl \
+             /var/www/html \
+             /var/www/errors; \
+    rm -Rf /var/www/*
+
 ADD conf/nginx-site.conf /etc/nginx/sites-available/default.conf
 ADD conf/nginx-site-ssl.conf /etc/nginx/sites-available/default-ssl.conf
 RUN ln -s /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
 
-## disabled due to license changes (to fix in next release)
-# Add GeoLite2 databases (https://dev.maxmind.com/geoip/geoip2/geolite2/)
-#RUN curl -fSL http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz -o /etc/nginx/GeoLite2-City.mmdb.gz \
-#    && curl -fSL http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz -o /etc/nginx/GeoLite2-Country.mmdb.gz \
-#    && gunzip /etc/nginx/GeoLite2-City.mmdb.gz \
-#    && gunzip /etc/nginx/GeoLite2-Country.mmdb.gz
-
-# tweak php-fpm config
-RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
-    echo "upload_max_filesize = 100M"  >> ${php_vars} &&\
-    echo "post_max_size = 100M"  >> ${php_vars} &&\
+# PHP-FPM config
+RUN echo "cgi.fix_pathinfo=0" > ${php_vars} && \
+    echo "upload_max_filesize = 100M"  >> ${php_vars} && \
+    echo "post_max_size = 100M"  >> ${php_vars} && \
     echo "variables_order = \"EGPCS\""  >> ${php_vars} && \
     echo "memory_limit = 128M"  >> ${php_vars} && \
     { \
@@ -267,20 +258,21 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
         echo 'listen.group = nginx'; \
         echo 'clear_env = no'; \
         echo 'access.log = /dev/null'; \
+        echo 'php_admin_value[error_log] = /proc/self/fd/2'; \
+        echo 'decorate_workers_output = no'; \
     } | tee ${fpm_docker_conf}
 
-# Add Scripts
+# Scripts
 ADD scripts/start.sh /start.sh
 ADD scripts/pull /usr/bin/pull
 ADD scripts/push /usr/bin/push
 ADD scripts/letsencrypt-setup /usr/bin/letsencrypt-setup
 ADD scripts/letsencrypt-renew /usr/bin/letsencrypt-renew
-RUN chmod 755 /usr/bin/pull && chmod 755 /usr/bin/push && chmod 755 /usr/bin/letsencrypt-setup && chmod 755 /usr/bin/letsencrypt-renew && chmod 755 /start.sh
+RUN chmod 755 /usr/bin/pull /usr/bin/push /usr/bin/letsencrypt-setup /usr/bin/letsencrypt-renew /start.sh
 
-# copy in code
+# Code
 ADD src/ /var/www/html/
 ADD errors/ /var/www/errors
-
 
 EXPOSE 443 80
 
