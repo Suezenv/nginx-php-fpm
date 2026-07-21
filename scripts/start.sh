@@ -154,7 +154,7 @@ if [ ! -z "$PHP_UPLOAD_MAX_FILESIZE" ]; then
 fi
 
 # Enable xdebug
-XdebugFile='/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini'
+XdebugFile='/usr/local/etc/php/conf.d/xdebug.ini'
 if [[ "$ENABLE_XDEBUG" == "1" ]] ; then
   if [ -f $XdebugFile ]; then
   	echo "Xdebug enabled"
