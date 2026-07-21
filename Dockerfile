@@ -130,6 +130,8 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
         echo 'listen.group = nginx'; \
         echo 'clear_env = no'; \
         echo 'access.log = /dev/null'; \
+        echo 'php_admin_value[error_log] = /proc/self/fd/2'; \
+        echo 'decorate_workers_output = no'; \
     } | tee ${fpm_docker_conf}
 
 #    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
