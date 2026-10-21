@@ -21,6 +21,7 @@ The latest tag will always follow the master branch in git. the other versions w
 | 1.9.1      | 7.4.5       | 1.16.1        | 3.11            | 0.3.13            | upgrade to PHP 7.4.5               |
 | 1.9.2      | 7.4.5       | 1.16.1        | 3.11            | 0.3.13            | fix issue of truncated stderr logs |
 | 1.9.3      | 7.4.33      | 1.22.0        | 3.16            | 0.3.13            | upgrade to PHP 7.4.33 and configuration to improve Strucutured logs |
+| 1.9.4      | 7.4.34-dev  | 1.22.0        | 3.16            | 0.3.13            | include fix for CVE-2026-109618-109619 |
 
 These tags will be created on GitLab and as tags in docker hub.
 

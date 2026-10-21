@@ -1,5 +1,66 @@
 FROM php:7.4.33-fpm-alpine3.16
 
+# Recompile PHP 7.4 depuis le backport de sécurité CVE-2026-109618/109619.
+# Conserver l'image de base et son ABI PHP 7.4 pour les extensions existantes.
+ARG PHP_PATCH_BRANCH=PHP-7.4-CVE-2026-109618-109619
+
+RUN set -eux; \
+    apk add --no-cache --virtual .php-rebuild-deps \
+        git \
+        $PHPIZE_DEPS \
+        linux-headers \
+        bison \
+        re2c \
+        autoconf \
+        bzip2-dev \
+        curl-dev \
+        libedit-dev \
+        libxml2-dev \
+        oniguruma-dev \
+        libsodium-dev \
+        argon2-dev \
+        openssl-dev \
+        sqlite-dev \
+        zlib-dev; \
+    docker-php-source extract; \
+    rm -rf /usr/src/php; \
+    git clone --depth=1 --branch "$PHP_PATCH_BRANCH" \
+        https://github.com/php/php-src.git /usr/src/php; \
+    cd /usr/src/php; \
+    export CFLAGS="$PHP_CFLAGS" \
+           CPPFLAGS="$PHP_CPPFLAGS" \
+           LDFLAGS="$PHP_LDFLAGS"; \
+    ./buildconf --force; \
+    ./configure \
+        --with-config-file-path="$PHP_INI_DIR" \
+        --with-config-file-scan-dir="$PHP_INI_DIR/conf.d" \
+        --enable-option-checking=fatal \
+        --with-mhash \
+        --with-pic \
+        --enable-ftp \
+        --enable-mbstring \
+        --enable-mysqlnd \
+        --with-password-argon2 \
+        --with-sodium=shared \
+        --with-pdo-sqlite \
+        --with-sqlite3 \
+        --with-curl \
+        --with-openssl \
+        --with-zlib \
+        --disable-phpdbg \
+        --with-pear \
+        --disable-cgi \
+        --enable-fpm \
+        --with-fpm-user=www-data \
+        --with-fpm-group=www-data; \
+    make -j"$(getconf _NPROCESSORS_ONLN)"; \
+    make install; \
+    docker-php-source delete; \
+    apk del .php-rebuild-deps; \
+    php -v; \
+    php-fpm -v
+
+
 LABEL maintainer="Ric Harvey <ric@ngd.io>"
 
 ENV fpm_docker_conf=/usr/local/etc/php-fpm.d/zz-docker.conf
@@ -197,11 +258,12 @@ RUN set -eux; \
     soap \
     dom \
     zip \
-    opcache; \
-  pecl install xdebug-3.0.4; \
-  pecl install -o -f redis; \
-  echo "extension=redis.so" > /usr/local/etc/php/conf.d/redis.ini; \
-  echo "zend_extension=xdebug.so" > /usr/local/etc/php/conf.d/xdebug.ini; \
+    opcache; 
+    
+RUN set -eux; \
+  pecl install xdebug-3.1.6; \
+  pecl install redis-5.3.7; \
+  docker-php-ext-enable xdebug redis; \
   docker-php-source delete; \
   apk del .build-php-ext-deps; \
   mkdir -p /etc/nginx /var/www/app /run/nginx /var/log/supervisor; \

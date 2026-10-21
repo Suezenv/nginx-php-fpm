@@ -28,17 +28,17 @@ To update the PHP version
 1. **Modify the `Dockerfile`**
    Replace the base image with the desired PHP version. For example:
    ```dockerfile
-   FROM php:8.2-fpm-alpine
+   FROM php:7.4.33-fpm-alpine3.16
 
 2. ** Update [versioning](docs/versioning.md) **
 
 2. **Build the Docker image**
     ```shell
-   docker build -t 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.3 .
+   docker build -t 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.4 .
 
 3. **Push the image to the registry**
     ```shell
-   docker push 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.3
+   docker push 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:1.9.4
 
 
 ## Quick Start
