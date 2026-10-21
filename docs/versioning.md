@@ -17,6 +17,8 @@ The latest tag will always follow the main branch in git. the other versions wil
  
 | Docker Tag | PHP Version | Nginx Version | Alpine Version | Container Scripts | Notes |
 |-----|-------|-----|--------|--------|----------|
+| 3.1.8 | 8.2.35 |1.24-r6 | 3.18 | 0.3.17 | upgrade to php 8.2.35 | 
+| 3.1.7 | 8.2.29 |1.24-r6 | 3.18 | 0.3.17 | upgrade to php 8.2.29 |
 | 3.1.5 | 8.2.6 |1.24-r6 | 3.18 | 0.3.17 | upgrade to php 8.2.5 |
 | 3.1.4 | 8.2.5 |1.22.1 | 3.17 | 0.3.17 | upgrade to php 8.2.5 |
 | 3.1.3 | 8.2.4 |1.22.1 | 3.17 | 0.3.17 | adding mongoDB support #281 |

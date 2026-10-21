@@ -1,4 +1,4 @@
-FROM php:8.2.7-fpm-alpine3.18
+FROM php:8.2.35-fpm-alpine3.24
 
 LABEL maintainer="Ric Harvey <ric@squarecows.com>"
 
@@ -69,7 +69,6 @@ RUN apk add --no-cache --virtual .sys-deps \
       --with-freetype \
       --with-jpeg && \
     docker-php-ext-install gd && \
-     pip install --upgrade pip && \
     docker-php-ext-install pdo_mysql mysqli pdo_sqlite pgsql pdo_pgsql exif intl xsl soap zip && \
     pecl install -o -f xdebug && \
     pecl install -o -f redis && \ 
@@ -83,9 +82,11 @@ RUN apk add --no-cache --virtual .sys-deps \
     mkdir -p /var/log/supervisor && \
     php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
     php composer-setup.php --quiet --install-dir=/usr/bin --filename=composer && \
-    rm composer-setup.php &&\
-  #  pip3 install -U pip && \
-    pip3 install -U certbot && \
+    rm composer-setup.php && \
+    python3 -m venv /opt/certbot && \
+    /opt/certbot/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/certbot/bin/pip install --no-cache-dir certbot && \
+    ln -s /opt/certbot/bin/certbot /usr/bin/certbot && \
     mkdir -p /etc/letsencrypt/webrootauth && \
     apk del gcc musl-dev linux-headers libffi-dev augeas-dev python3-dev make autoconf && \
     apk del .sys-deps

@@ -18,6 +18,25 @@ __NOTE:__ From 2.0.5 onwards there are x86 and arm64 builds available
 - [https://github.com/richarvey/nginx-php-fpm](https://github.com/richarvey/nginx-php-fpm)
 - [https://hub.docker.com/repository/docker/richarvey/nginx-php-fpm/general](https://hub.docker.com/repository/docker/richarvey/nginx-php-fpm/general)
 
+
+### Updating the PHP Version
+To update the PHP version
+
+1. **Modify the `Dockerfile`**
+   Replace the base image with the desired PHP version. For example:
+   ```dockerfile
+   FROM php:8.2.35-fpm-alpine3.24
+
+2. ** Update [versioning](docs/versioning.md) **
+
+2. **Build the Docker image**
+    ```shell
+   docker build -t 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:3.1.8 .
+
+3. **Push the image to the registry**
+    ```shell
+   docker push 3sdockerregistry.azurecr.io/richarvey/nginx-php-fpm:3.1.8
+
 ## Quick Start
 To pull from docker hub:
 ```
