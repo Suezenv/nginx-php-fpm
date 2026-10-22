@@ -108,9 +108,9 @@ ADD conf/nginx-site-ssl.conf /etc/nginx/sites-available/default-ssl.conf
 RUN ln -s /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/default.conf
 
 # tweak php-fpm config
-RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
-    echo "upload_max_filesize = 100M"  >> ${php_vars} &&\
-    echo "post_max_size = 100M"  >> ${php_vars} &&\
+RUN echo "cgi.fix_pathinfo=0" > ${php_vars} && \
+    echo "upload_max_filesize = 100M"  >> ${php_vars} && \
+    echo "post_max_size = 100M"  >> ${php_vars} && \
     echo "variables_order = \"EGPCS\""  >> ${php_vars} && \
     echo "memory_limit = 128M"  >> ${php_vars} && \
     sed -i \
@@ -120,14 +120,17 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
         -e "s/pm.min_spare_servers = 1/pm.min_spare_servers = 2/g" \
         -e "s/pm.max_spare_servers = 3/pm.max_spare_servers = 4/g" \
         -e "s/;pm.max_requests = 500/pm.max_requests = 200/g" \
-        -e "s/user = www-data/user = nginx/g" \
-        -e "s/group = www-data/group = nginx/g" \
-        -e "s/;listen.mode = 0660/listen.mode = 0666/g" \
-        -e "s/;listen.owner = www-data/listen.owner = nginx/g" \
-        -e "s/;listen.group = www-data/listen.group = nginx/g" \
-        -e "s/listen = 127.0.0.1:9000/listen = \/var\/run\/php-fpm.sock/g" \
+        -e "s/^user = www-data/user = nginx/g" \
+        -e "s/^group = www-data/group = nginx/g" \
+        -e "s/^;listen.mode = 0660/listen.mode = 0666/g" \
+        -e "s/^;listen.owner = www-data/listen.owner = nginx/g" \
+        -e "s/^;listen.group = www-data/listen.group = nginx/g" \
+        -e "s/^;listen.group = nginx/listen.group = nginx/g" \
+        -e "s/^;\?listen = .*/listen = \/var\/run\/php-fpm.sock/g" \
         -e "s/^;clear_env = no$/clear_env = no/" \
-        ${fpm_conf}
+        ${fpm_conf} && \
+    grep -q '^listen = /var/run/php-fpm.sock' ${fpm_conf}
+    
 #    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
 RUN cp /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini && \
 	sed -i \
