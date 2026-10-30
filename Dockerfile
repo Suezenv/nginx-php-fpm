@@ -12,7 +12,6 @@ ENV LUAJIT_INC /usr/include/luajit-2.1
 ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
 RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/community gnu-libiconv
 
-
 # INstall nginx + lua and devel kit
 RUN apk add --no-cache nginx \
     nginx-mod-http-lua \
@@ -137,6 +136,10 @@ RUN echo "cgi.fix_pathinfo=0" > ${php_vars} &&\
 
 #    ln -s /etc/php7/php.ini /etc/php7/conf.d/php.ini && \
 RUN cp /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini
+
+
+RUN apk update \
+    && apk upgrade --no-cache brotli-libs
 
 # Add Scripts
 ADD scripts/start.sh /start.sh
