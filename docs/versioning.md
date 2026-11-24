@@ -13,6 +13,13 @@ We will use the [semver](http://ricostacruz.com/cheatsheets/semver.html) style n
 
 The latest tag will always follow the main branch in git. the other versions will have releases attached.
 
+#### PHP 8.5.x
+
+| Docker Tag | PHP Version | Nginx Version | Alpine Version | Container Scripts | Notes                            |
+|------------|-------------|---------------|----------------|-------------------|----------------------------------|
+| 6.0.0      | 8.5.13      | 1.30.7        | 3.24           | 0.3.17            | upgrade to php 8.5.x             |
+
+
 #### PHP 8.4.x
 
 | Docker Tag | PHP Version | Nginx Version | Alpine Version | Container Scripts | Notes                            |
